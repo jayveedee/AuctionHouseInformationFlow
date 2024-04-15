@@ -2,10 +2,10 @@ from enum import Enum
 
 
 class Bid:
-    def __init__(self, bidder_id, amount, max_bid=None): # We only have max bids for offline users
+    def __init__(self, bidder_id, amount):  # The amount is the max bid for comissions
         self.bidder_id = bidder_id
         self.amount = amount
-        self.max_bid = amount
+
 
 # TODO: Have an offline bid function
 # TODO: Add the function to get the reputation of the user from the auction house
@@ -14,14 +14,14 @@ class Item:
         self.name = name
         self.id = id
         self.min_bid = min_bid
-        self.max_bid = min_bid # this will be updated if a new bid has a max bid(offline user)
+        self.max_bid = min_bid  # this will be updated if a new bid has a max bid(offline user)
         self.current_bid = self.min_bid - increment
         self.increment = increment
-        self.offline_bids: [Bid] = []
+        self.commissions: [Bid] = []
         self.bids: [Bid] = []
 
     # This works for online bids but a new functino should be done for offline bids
-    def add_bid(self, bid):
+    def add_bid(self, bid, auction_house_bid=False):
         if bid.amount >= self.current_bid + self.increment:  # Check if the bid is higher than the minimum bid
             if bid.bidder_id in [b.bidder_id for b in self.bids]:  # Check if the bidder already has a bid
                 for b in self.bids:
@@ -32,10 +32,41 @@ class Item:
 
             else:
                 self.bids.append(bid)
-            print(f"{bid.bidder_id} has bid {bid.amount} on {self.name}")
+
+            print_string = f"{bid.bidder_id} bids {bid.amount} kr on {self.name}"
+            if auction_house_bid:
+                print_string = f"Auction house bids for {bid.bidder_id}: {bid.amount} Kr on {self.name}"
+
+            print(print_string)
+
             return True  # Bid successfully added
         else:
             return False  # Bid invalid
+
+    def add_commission(self, bid):
+        self.commissions.append(bid)
+
+    def compute_commissions(self):
+        # Get the highest bid
+        if len(self.commissions) > 0:
+            sorted_commissions = sorted(self.commissions, key=lambda x: x.amount)
+            # Get the highest commission
+            highest_commission = sorted_commissions[-1]
+            # Get the second highest commission, so we can calculate the starting bid
+            if len(sorted_commissions) > 1:
+                self.current_bid = sorted_commissions[-2].amount + self.increment
+
+            # Add the highest bidder, we know that this bid is the only offline bid (as they are computed beforehand)
+            self.add_bid(highest_commission, auction_house_bid=True)
+            print(f"The starting bid for {self.name} is {self.current_bid}, made by {highest_commission.bidder_id}")
+
+    def compute_auction(self):
+        # Add online bids
+        while True:
+            bidder_id = input("Enter Bidder ID (or 'x' to exit): ")
+            if bidder_id == 'x':
+                break
+            self.add_bid(Bid(bidder_id, int(input("Enter bid amount: "))))
 
     def compute_winner(self):
         if len(self.bids) > 0:
@@ -89,7 +120,6 @@ class AuctionHouse:
     def start_auction(self, item):
         pass
 
-
     def test(self):
         self.add_user(User("Alice", "A"))
         self.add_user(User("Bob", "B"))
@@ -97,15 +127,13 @@ class AuctionHouse:
 
         self.add_item(Item("Old Beer", "1", 500, 50))
 
+        # Adds commission of 500 from A
+        self.items[0].add_commission(Bid("A", 500))
+        self.items[0].add_commission(Bid("B", 700))
+        self.items[0].compute_commissions()
 
-        self.items[0].add_bid(Bid("A", 500))
-        self.items[0].add_bid(Bid("B", 550))
-        self.items[0].add_bid(Bid("C", 600)) # Online user input
-        self.items[0].add_bid(Bid("B", 650)) # Auctionhouse automatic
-        self.items[0].add_bid(Bid("C", 700)) # Online user bid should fail because B has prio
-        self.items[0].add_bid(Bid("B", 700)) # this is the bid that should be accepted
-        self.items[0].add_bid(Bid("C", 750)) # Online user bids, and is accepted
-        print(f"The winner is {self.items[0].compute_winner().bidder_id}")
+
+
 
 if __name__ == "__main__":
     auction_house = AuctionHouse("Auction House 1", "1")
