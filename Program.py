@@ -28,16 +28,34 @@ class Item:
                     if b.bidder_id == bid.bidder_id:
                         if bid.amount > b.amount:
                             b.amount = bid.amount
-                            self.current_bid = self.current_bid + self.increment
+                            if auction_house_bid:
+                                self.current_bid = bid.amount
 
             else:
                 self.bids.append(bid)
 
-            print_string = f"{bid.bidder_id} bids {bid.amount} kr on {self.name}"
+            if not auction_house_bid:
+                self.current_bid = bid.amount
+
+            print_string = f"{bid.bidder_id} bids {self.current_bid} kr on {self.name}"
             if auction_house_bid:
-                print_string = f"Auction house bids for {bid.bidder_id}: {bid.amount} Kr on {self.name}"
+                print_string = f"Auction house bids for {bid.bidder_id}: {self.current_bid} Kr on {self.name}"
 
             print(print_string)
+
+            # Check if highest offline bid is higher, if so print that the auction house actually bid that ofr them
+            print_bid_for_commission = False
+            if self.current_bid + self.increment < self.bids[0].amount and not auction_house_bid:
+                print_bid_for_commission = True
+                self.current_bid += self.increment
+
+            # If the same amount is bid the offline bid wins
+            elif self.current_bid == self.bids[0].amount and not auction_house_bid:
+                print_bid_for_commission = True
+
+            if print_bid_for_commission:
+                print(
+                    f"Auction house bids for {self.bids[0].bidder_id}: {self.current_bid} Kr on {self.name}")
 
             return True  # Bid successfully added
         else:
@@ -58,7 +76,6 @@ class Item:
 
             # Add the highest bidder, we know that this bid is the only offline bid (as they are computed beforehand)
             self.add_bid(highest_commission, auction_house_bid=True)
-            print(f"The starting bid for {self.name} is {self.current_bid}, made by {highest_commission.bidder_id}")
 
     def compute_auction(self):
         # Add online bids
@@ -69,8 +86,13 @@ class Item:
             self.add_bid(Bid(bidder_id, int(input("Enter bid amount: "))))
 
     def compute_winner(self):
+        print("Going once, going twice, sold!")
         if len(self.bids) > 0:
-            return max(self.bids, key=lambda x: x.amount)  # Get the highest bid
+            # Offline bidders win be default
+            if self.bids[0].amount >= self.current_bid:
+                return self.bids[0]
+            else:
+                return max(self.bids, key=lambda x: x.amount)  # Get the highest bid
         else:
             return None
 
@@ -132,7 +154,12 @@ class AuctionHouse:
         self.items[0].add_commission(Bid("B", 700))
         self.items[0].compute_commissions()
 
+        # Add online bids
+        self.items[0].compute_auction()
 
+        # Compute winner
+        winner = self.items[0].compute_winner()
+        print(f"The winner is {winner.bidder_id} with a bid of {winner.amount} for the item {self.items[0].name}")
 
 
 if __name__ == "__main__":
