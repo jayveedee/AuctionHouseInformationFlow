@@ -109,6 +109,7 @@ class User:
         self.id = id
         self.reputation: Reputation = reputation
         # self.budget = 1000 # default budget for later to make sure the user has a budget
+        print(f"User {self.name} created with reputation {self.reputation.name}")
 
     # def bid(self, item, amount):
     #     if amount <= self.reputation.value[1]:  # and amount <= self.budget:
@@ -117,13 +118,10 @@ class User:
     #     else:
     #         return False
 
-    def get_reputation_from_auction_houses(self, name):
-        # get reputation from auction houses
-        # If the user is known by other auction houses we can return a better reputation for the user, otherwise return the default reputation
-        return Reputation.UNKNOWN
+
 
     def __str__(self):
-        return f"{self.name} has a budget of {self.budget} and has made the following bids: {self.bids}"
+        return f"{self.name} ({self.id}) has a reputation of {self.reputation.name}"
 
 
 class AuctionHouse:
@@ -132,9 +130,28 @@ class AuctionHouse:
         self.id = id
         self.users: [User] = []
         self.items: [Item] = []
+        self.known_auction_houses: [AuctionHouse] = []
+
+    def get_reputation_from_auction_houses(self, name):
+        # get reputation from auction houses
+        # If the user is known by other auction houses we can return a better reputation for the user, otherwise return the default reputation
+        for auction_house in self.known_auction_houses:
+            for user in auction_house.users:
+                if user.name == name:
+                    print(f"Found user {user.name} in {auction_house.name} with reputation: {user.reputation}")
+                    return user.reputation
+
+        return Reputation.UNKNOWN
+
+    def add_known_auction_house(self, auction_house):
+        self.known_auction_houses.append(auction_house)
 
     def add_user(self, user):
+        if user.reputation == Reputation.UNKNOWN:
+            user.reputation = self.get_reputation_from_auction_houses(user.name)
         self.users.append(user)
+        print(f"Added user {user.name} to {self.name}")
+
 
     def add_item(self, item):
         self.items.append(item)
@@ -142,26 +159,34 @@ class AuctionHouse:
     def start_auction(self, item):
         pass
 
-    def test(self):
-        self.add_user(User("Alice", "A"))
-        self.add_user(User("Bob", "B"))
-        self.add_user(User("Cecile", "C"))
+def test(auction_house):
+    auction_house.add_user(User("Alice", "A"))
+    auction_house.add_user(User("Bob", "B"))
+    auction_house.add_user(User("Cecile", "C"))
 
-        self.add_item(Item("Old Beer", "1", 500, 50))
+    auction_house.add_item(Item("Old Beer", "1", 500, 50))
 
-        # Adds commission of 500 from A
-        self.items[0].add_commission(Bid("A", 500))
-        self.items[0].add_commission(Bid("B", 700))
-        self.items[0].compute_commissions()
+    # Adds commission of 500 from A
+    auction_house.items[0].add_commission(Bid("A", 500))
+    auction_house.items[0].add_commission(Bid("B", 700))
+    auction_house.items[0].compute_commissions()
 
-        # Add online bids
-        self.items[0].compute_auction()
+    # Add online bids
+    auction_house.items[0].compute_auction()
 
-        # Compute winner
-        winner = self.items[0].compute_winner()
-        print(f"The winner is {winner.bidder_id} with a bid of {winner.amount} for the item {self.items[0].name}")
+    # Compute winner
+    winner = auction_house.items[0].compute_winner()
+    print(f"The winner is {winner.bidder_id} with a bid of {winner.amount} for the item {auction_house.items[0].name}")
 
 
 if __name__ == "__main__":
     auction_house = AuctionHouse("Auction House 1", "1")
-    auction_house.test()
+    auction_house2 = AuctionHouse("Auction House 2", "2")
+
+    # Auction house one can query the reputation of users from auction house 2
+    auction_house.add_known_auction_house(auction_house2)
+    auction_house2.add_user(User("Alice", "A", Reputation.REPUTABLE))
+    auction_house2.add_user(User("Bob", "B", Reputation.KNOWN))
+
+    #
+    test(auction_house)
