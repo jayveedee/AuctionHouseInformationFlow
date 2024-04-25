@@ -109,7 +109,6 @@ class User:
         self.id = id
         self.reputation: Reputation = reputation
         # self.budget = 1000 # default budget for later to make sure the user has a budget
-        print(f"User {self.name} created with reputation {self.reputation.name}")
 
     # def bid(self, item, amount):
     #     if amount <= self.reputation.value[1]:  # and amount <= self.budget:
@@ -150,7 +149,6 @@ class AuctionHouse:
         if user.reputation == Reputation.UNKNOWN:
             user.reputation = self.get_reputation_from_auction_houses(user.name)
         self.users.append(user)
-        print(f"Added user {user.name} to {self.name}")
 
 
     def add_item(self, item):
