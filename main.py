@@ -117,8 +117,6 @@ class User:
     #     else:
     #         return False
 
-
-
     def __str__(self):
         return f"{self.name} ({self.id}) has a reputation of {self.reputation.name}"
 
@@ -150,14 +148,22 @@ class AuctionHouse:
             user.reputation = self.get_reputation_from_auction_houses(user.name)
         self.users.append(user)
 
-
     def add_item(self, item):
         self.items.append(item)
 
     def start_auction(self, item):
         pass
 
-def test(auction_house):
+
+def main():
+    auction_house = AuctionHouse("Auction House 1", "1")
+    auction_house2 = AuctionHouse("Auction House 2", "2")
+
+    # Auction house one can query the reputation of users from auction house 2
+    auction_house.add_known_auction_house(auction_house2)
+    auction_house2.add_user(User("Alice", "A", Reputation.REPUTABLE))
+    auction_house2.add_user(User("Bob", "B", Reputation.KNOWN))
+
     auction_house.add_user(User("Alice", "A"))
     auction_house.add_user(User("Bob", "B"))
     auction_house.add_user(User("Cecile", "C"))
@@ -177,14 +183,5 @@ def test(auction_house):
     print(f"The winner is {winner.bidder_id} with a bid of {winner.amount} for the item {auction_house.items[0].name}")
 
 
-if __name__ == "__main__":
-    auction_house = AuctionHouse("Auction House 1", "1")
-    auction_house2 = AuctionHouse("Auction House 2", "2")
-
-    # Auction house one can query the reputation of users from auction house 2
-    auction_house.add_known_auction_house(auction_house2)
-    auction_house2.add_user(User("Alice", "A", Reputation.REPUTABLE))
-    auction_house2.add_user(User("Bob", "B", Reputation.KNOWN))
-
-    #
-    test(auction_house)
+if __name__ == "__main__":  #
+    main()
